@@ -49,6 +49,11 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
+        env:
+          HOST_BINDING=127.0.0.1
+          LOCAL_MODE=true
+          REGISTRATION_DISABLED=false
+          DANGEROUSLY_SKIP_AUTH=false
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
