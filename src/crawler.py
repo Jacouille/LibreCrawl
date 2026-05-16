@@ -396,6 +396,57 @@ class WebCrawler:
 
         return True, "Crawl and PageSpeed analysis stopped"
 
+    def _trigger_autosite_webhook(self):
+        """Send crawl results to AutoSite backend webhook if configured"""
+        webhook_url = self.config.get('autosite_webhook_url')
+        scan_id = self.config.get('autosite_scan_id')
+        project_id = self.config.get('autosite_project_id')
+        service_role_key = self.config.get('autosite_service_role_key')
+
+        if not all([webhook_url, scan_id, project_id]):
+            return
+
+        print(f"Triggering AutoSite webhook for scan {scan_id}...")
+
+        try:
+            # Need to get all data (urls, links, issues)
+            from src.crawl_db import load_crawled_urls, load_crawl_links, load_crawl_issues
+            if self.crawl_id:
+                urls = load_crawled_urls(self.crawl_id)
+                links = load_crawl_links(self.crawl_id)
+                issues = load_crawl_issues(self.crawl_id)
+            else:
+                urls = []
+                links = []
+                issues = []
+                
+            payload = {
+                'scanId': scan_id,
+                'projectId': project_id,
+                'urls': urls,
+                'links': links,
+                'issues': issues,
+                'stats': self.stats
+            }
+
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            if service_role_key:
+                headers['X-Supabase-Service-Role'] = service_role_key
+
+            import requests
+            response = requests.post(webhook_url, json=payload, headers=headers, timeout=30)
+            
+            if response.status_code >= 400:
+                print(f"AutoSite webhook failed with status {response.status_code}: {response.text}")
+            else:
+                print(f"AutoSite webhook succeeded: {response.text}")
+                
+        except Exception as e:
+            print(f"Error triggering AutoSite webhook: {e}")
+
+
     def pause_crawl(self):
         """Pause the current crawl"""
         if not self.is_running:
@@ -862,6 +913,9 @@ class WebCrawler:
             print(f"Crawl stopped (demo limit). User memory: {self.user_memory.total_mb:.0f}MB. Crawled: {self.stats['crawled']}")
         else:
             print(f"Crawl completed. Discovered: {self.stats['discovered']}, Crawled: {self.stats['crawled']}")
+            
+            # Trigger webhook after completion
+            self._trigger_autosite_webhook()
 
     def _crawl_url(self, url, depth):
         """Crawl a single URL"""
@@ -1274,7 +1328,11 @@ class WebCrawler:
             # Clean up
             await self.js_renderer.cleanup()
             self.is_running = False
-            print(f"Crawl completed. Discovered: {self.stats['discovered']}, Crawled: {self.stats['crawled']}")
+            print(f"Crawl completed {self.crawl_id}. Discovered: {self.stats['discovered']}, Crawled: {self.stats['crawled']}")
+            
+            # Trigger webhook
+            if not self._demo_limit_reached:
+                self._trigger_autosite_webhook()
 
     def _update_all_linked_from(self):
         """Update linked_from field for all crawled URLs based on collected source_pages data"""
