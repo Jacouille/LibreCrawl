@@ -73,7 +73,7 @@ class SettingsManager:
         """Get fresh default settings"""
         return {
             # Crawler settings
-            'maxDepth': 3,
+            'maxDepth': 5,
             'maxUrls': 5000000,
             'crawlDelay': 1,
             'followRedirects': True,
@@ -102,12 +102,26 @@ class SettingsManager:
             'duplicationThreshold': 0.85,
 
             # Export settings
-            'exportFormat': 'csv',
-            'exportFields': ['url', 'status_code', 'title', 'meta_description', 'h1'],
+            'exportFormat': 'json',
+            'exportFields': [
+                "url",
+                "status_code",
+                "title",
+                "meta_description",
+                "h1",
+                "response_time",
+                "canonical_url",
+                "og_tags",
+                "twitter_tags",
+                "json_ld",
+                "links_detailed",
+                "robots",
+                "issues_detected"
+            ],
 
             # Advanced settings
             'concurrency': 5,
-            'memoryLimit': 512,
+            'memoryLimit': 1024,
             'logLevel': 'INFO',
             'saveSession': False,
             'enableProxy': False,
@@ -115,7 +129,7 @@ class SettingsManager:
             'customHeaders': '',
 
             # JavaScript rendering settings
-            'enableJavaScript': False,
+            'enableJavaScript': True,
             'jsWaitTime': 3,
             'jsTimeout': 30,
             'jsBrowser': 'chromium',
