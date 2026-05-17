@@ -742,6 +742,17 @@ def start_crawl():
     # Apply current settings to crawler before starting
     try:
         crawler_config = settings_manager.get_crawler_config()
+        
+        # Override with autosite configurations from request body
+        if data.get('autosite_webhook_url'):
+            crawler_config['autosite_webhook_url'] = data['autosite_webhook_url']
+        if data.get('autosite_scan_id'):
+            crawler_config['autosite_scan_id'] = data['autosite_scan_id']
+        if data.get('autosite_project_id'):
+            crawler_config['autosite_project_id'] = data['autosite_project_id']
+        if data.get('autosite_service_role_key'):
+            crawler_config['autosite_service_role_key'] = data['autosite_service_role_key']
+            
         crawler.update_config(crawler_config)
     except Exception as e:
         print(f"Warning: Could not apply settings: {e}")

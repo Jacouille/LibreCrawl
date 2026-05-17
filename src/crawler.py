@@ -410,16 +410,10 @@ class WebCrawler:
         print(f"Triggering AutoSite webhook for scan {scan_id}...")
 
         try:
-            # Need to get all data (urls, links, issues)
-            from src.crawl_db import load_crawled_urls, load_crawl_links, load_crawl_issues
-            if self.crawl_id:
-                urls = load_crawled_urls(self.crawl_id)
-                links = load_crawl_links(self.crawl_id)
-                issues = load_crawl_issues(self.crawl_id)
-            else:
-                urls = []
-                links = []
-                issues = []
+            # Send the in-memory arrays directly to avoid DB dependency/race conditions
+            urls = self.crawl_results.copy()
+            links = self.link_manager.all_links.copy() if self.link_manager else []
+            issues = self.issue_detector.get_issues() if self.issue_detector else []
                 
             payload = {
                 'scanId': scan_id,
