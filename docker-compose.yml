@@ -9,6 +9,11 @@ services:
     volumes:
       # Persist the user database and settings
       - ./data:/app/data
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 2G
     environment:
       - FLASK_APP=main.py
       - PYTHONUNBUFFERED=1
