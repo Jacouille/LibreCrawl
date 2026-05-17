@@ -404,6 +404,7 @@ class WebCrawler:
         service_role_key = self.config.get('autosite_service_role_key')
 
         if not all([webhook_url, scan_id, project_id]):
+            print(f"AutoSite webhook not configured. web_hook: {webhook_url}, scan_id: {scan_id}, project_id: {project_id}")
             return
 
         print(f"Triggering AutoSite webhook for scan {scan_id}...")
