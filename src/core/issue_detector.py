@@ -284,17 +284,24 @@ class IssueDetector:
         page_size = result.get('size', 0)
 
         # Subtract JS wait time if page was rendered with JavaScript
-        adjusted_response_time = response_time
         is_js = result.get('javascript_rendered', False)
         js_wait = result.get('js_wait_time')
         if js_wait is None:
             js_wait = self.js_wait_time
 
-        if is_js and js_wait > 0:
-            adjusted_response_time = max(0.0, response_time - (js_wait * 1000))
+        # Check if the response_time has already been pre-adjusted by the crawler
+        raw_response_time = result.get('raw_response_time')
+        if raw_response_time is not None:
+            adjusted_response_time = response_time
+        else:
+            # Fallback for historical data/other paths
+            raw_response_time = response_time
+            adjusted_response_time = response_time
+            if is_js and js_wait > 0:
+                adjusted_response_time = max(0.0, response_time - (js_wait * 1000))
 
         if adjusted_response_time > 3000:
-            details = f'Page took {response_time}ms to respond'
+            details = f'Page took {raw_response_time}ms to respond'
             if is_js and js_wait > 0:
                 details += f' (adjusted: {adjusted_response_time:.2f}ms excluding {js_wait}s JS wait time)'
             details += ' (recommended: <3000ms)'
@@ -306,7 +313,7 @@ class IssueDetector:
                 'details': details
             })
         elif adjusted_response_time > 1000:
-            details = f'Page took {response_time}ms to respond'
+            details = f'Page took {raw_response_time}ms to respond'
             if is_js and js_wait > 0:
                 details += f' (adjusted: {adjusted_response_time:.2f}ms excluding {js_wait}s JS wait time)'
             details += ' (recommended: <1000ms)'

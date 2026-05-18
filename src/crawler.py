@@ -1072,6 +1072,8 @@ class WebCrawler:
             # Populate linked_from after all link collection is complete
             result['linked_from'] = self.link_manager.get_source_pages(url)
             result['response_time'] = round((time.time() - start_time) * 1000, 2)
+            result['raw_response_time'] = result['response_time']
+            result['js_wait_time'] = 0
 
             # Add to unsaved batch if DB persistence enabled
             if self.db_save_enabled:
@@ -1205,7 +1207,14 @@ class WebCrawler:
 
             # Populate linked_from after all link collection is complete
             result['linked_from'] = self.link_manager.get_source_pages(url)
-            result['response_time'] = round((time.time() - start_time) * 1000, 2)
+            
+            raw_response_time = (time.time() - start_time) * 1000
+            js_wait = self.config.get('js_wait_time', 3)
+            adjusted_response_time = max(0.0, raw_response_time - (js_wait * 1000))
+            
+            result['response_time'] = round(adjusted_response_time, 2)
+            result['raw_response_time'] = round(raw_response_time, 2)
+            result['js_wait_time'] = js_wait
 
             # Add to unsaved batch if DB persistence enabled
             if self.db_save_enabled:
