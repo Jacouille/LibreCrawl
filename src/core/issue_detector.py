@@ -8,10 +8,11 @@ from difflib import SequenceMatcher
 class IssueDetector:
     """Detects SEO and technical issues in crawled pages"""
 
-    def __init__(self, exclusion_patterns=None):
+    def __init__(self, exclusion_patterns=None, js_wait_time=0):
         self.exclusion_patterns = exclusion_patterns or []
         self.detected_issues = []
         self.issues_lock = threading.Lock()
+        self.js_wait_time = js_wait_time
 
     def detect_issues(self, result):
         """Detect SEO issues for a crawled URL"""
@@ -282,21 +283,39 @@ class IssueDetector:
         response_time = result.get('response_time', 0)
         page_size = result.get('size', 0)
 
-        if response_time > 3000:
+        # Subtract JS wait time if page was rendered with JavaScript
+        adjusted_response_time = response_time
+        is_js = result.get('javascript_rendered', False)
+        js_wait = result.get('js_wait_time')
+        if js_wait is None:
+            js_wait = self.js_wait_time
+
+        if is_js and js_wait > 0:
+            adjusted_response_time = max(0.0, response_time - (js_wait * 1000))
+
+        if adjusted_response_time > 3000:
+            details = f'Page took {response_time}ms to respond'
+            if is_js and js_wait > 0:
+                details += f' (adjusted: {adjusted_response_time:.2f}ms excluding {js_wait}s JS wait time)'
+            details += ' (recommended: <3000ms)'
             issues.append({
                 'url': url,
                 'type': 'error',
                 'category': 'Performance',
                 'issue': 'Slow Response Time',
-                'details': f'Page took {response_time}ms to respond (recommended: <3000ms)'
+                'details': details
             })
-        elif response_time > 1000:
+        elif adjusted_response_time > 1000:
+            details = f'Page took {response_time}ms to respond'
+            if is_js and js_wait > 0:
+                details += f' (adjusted: {adjusted_response_time:.2f}ms excluding {js_wait}s JS wait time)'
+            details += ' (recommended: <1000ms)'
             issues.append({
                 'url': url,
                 'type': 'warning',
                 'category': 'Performance',
                 'issue': 'Moderate Response Time',
-                'details': f'Page took {response_time}ms to respond (recommended: <1000ms)'
+                'details': details
             })
 
         if page_size > 3 * 1024 * 1024:

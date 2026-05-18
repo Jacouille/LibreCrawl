@@ -330,7 +330,10 @@ class WebCrawler:
         self.rate_limiter = RateLimiter(requests_per_second)
         self.link_manager = LinkManager(self.base_domain)
         self.sitemap_parser = SitemapParser(self.session, self.base_domain, self.config['timeout'])
-        self.issue_detector = IssueDetector(self.config.get('issue_exclusion_patterns', []))
+        self.issue_detector = IssueDetector(
+            exclusion_patterns=self.config.get('issue_exclusion_patterns', []),
+            js_wait_time=self.config.get('js_wait_time', 0)
+        )
 
         # Initialize JS renderer if needed
         if self.config.get('enable_javascript', False):
@@ -774,6 +777,11 @@ class WebCrawler:
                 self.rate_limiter.update_rate(1.0 / self.config['delay'])
             else:
                 self.rate_limiter.update_rate(100.0)
+
+        # Update issue detector configurations if it exists
+        if self.issue_detector:
+            self.issue_detector.js_wait_time = self.config.get('js_wait_time', 0)
+            self.issue_detector.exclusion_patterns = self.config.get('issue_exclusion_patterns', [])
 
     def _crawl_worker(self):
         """Main crawling worker with smooth rate limiting"""
